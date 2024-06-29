@@ -1,5 +1,7 @@
 import enum
 
+from pydantic import BaseModel
+
 
 class SearchType(enum.Enum):
     C_SYMBOL = 0
@@ -12,3 +14,11 @@ class SearchType(enum.Enum):
     FILE = 7
     FILES_INCLUDING = 8
     ASSIGN_TO_SYMBOL = 9
+
+
+class SearchResult(BaseModel):
+    symbol: str
+    file: str
+    parent: str
+    line: int
+    content: str

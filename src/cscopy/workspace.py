@@ -3,7 +3,7 @@ import shutil
 import tempfile
 
 from cscopy.cli import CscopeCLI
-from cscopy.model import SearchType
+from cscopy.model import SearchResult, SearchType
 from cscopy.utils.common import run
 
 
@@ -23,6 +23,7 @@ class CscopeWorkspace(object):
     ) -> None:
         self.cli = cli
         self.kernel_mode = kernel_mode
+        self.files = files
 
         # Check whether files exist
         for file in files:
@@ -34,21 +35,22 @@ class CscopeWorkspace(object):
             self.tempdir = tempfile.TemporaryDirectory()
             self.tempdir_path = self.tempdir.name
 
+            file_index = 0
+            target_files = []
             for file in files:
+                target_file = os.path.join(self.tempdir_path, f"{file_index}")
                 shutil.copy(
-                    file, self.tempdir_path
+                    file, target_file
                 )  # use shutil.copy to preserve file attributes
 
-            self.files = [
-                os.path.join(self.tempdir_path, os.path.basename(file))
-                for file in files
-            ]
+                target_files.append(target_file)
+
         else:
-            self.files = files
+            target_files = files
             self.tempdir_path = os.getcwd()
 
         # Generate cscope.out file
-        cmds = [cli.cscope_path, "-b", *self.files]
+        cmds = [cli.cscope_path, "-b", *target_files]
         if kernel_mode:
             cmds.append("-k")
 
@@ -70,12 +72,18 @@ class CscopeWorkspace(object):
         if hasattr(self, "tempdir"):
             self.tempdir.cleanup()
 
-    def do_single_search(self, mode: SearchType, symbol: str):
+    def do_single_search(self, mode: SearchType, symbol: str) -> list[SearchResult]:
         """
         Perform a single search
 
         `cscope -d -L{mode} {symbol}`
 
+        Args:
+            mode (SearchType): Search mode, e.g. cscopy.model.SearchType.C_SYMBOL
+            symbol (str): Symbol to search
+
+        Returns:
+            list[cscopy.model.SearchResult]: List of search results
         """
 
         # TODO: Add kernel mode support
@@ -92,4 +100,23 @@ class CscopeWorkspace(object):
             cwd=self.tempdir_path,
         )
 
-        return output
+        output_lines = output.splitlines()
+        search_results = []
+        for line in output_lines:
+            parts = line.split(" ", 3)  # limit split to 3 parts
+            if len(parts) < 4:
+                raise ValueError(f"Unexpected output from cscope")
+
+            file, parent, line_number, content = parts
+            line_number = int(line_number)
+
+            search_result = SearchResult(
+                symbol=symbol,
+                file=self.files[int(os.path.basename(file))],
+                parent=parent,
+                line=line_number,
+                content=content,
+            )
+            search_results.append(search_result)
+
+        return search_results
