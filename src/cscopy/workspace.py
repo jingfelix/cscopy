@@ -112,7 +112,7 @@ class CscopeWorkspace(object):
 
             search_result = SearchResult(
                 symbol=symbol,
-                file=self.files[int(os.path.basename(file))],
+                file=self.files[int(os.path.basename(file))] if self.tempdir else file,
                 parent=parent,
                 line=line_number,
                 content=content,
