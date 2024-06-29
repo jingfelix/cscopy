@@ -72,7 +72,7 @@ class CscopeWorkspace(object):
         if hasattr(self, "tempdir"):
             self.tempdir.cleanup()
 
-    def do_single_search(self, mode: SearchType, symbol: str) -> list[SearchResult]:
+    def search(self, mode: SearchType, symbol: str) -> list[SearchResult]:
         """
         Perform a single search
 
@@ -120,3 +120,33 @@ class CscopeWorkspace(object):
             search_results.append(search_result)
 
         return search_results
+
+    def search_c_symbol(self, symbol: str) -> list[SearchResult]:
+        return self.search(SearchType.C_SYMBOL, symbol)
+
+    def search_global_definition(self, symbol: str) -> list[SearchResult]:
+        return self.search(SearchType.GLOBAL_DEFINITION, symbol)
+
+    def search_func_called_by(self, symbol: str) -> list[SearchResult]:
+        return self.search(SearchType.FUNC_CALLED_BY, symbol)
+
+    def search_func_calling(self, symbol: str) -> list[SearchResult]:
+        return self.search(SearchType.FUNC_CALLING, symbol)
+
+    def search_text_string(self, symbol: str) -> list[SearchResult]:
+        return self.search(SearchType.TEXT_STRING, symbol)
+
+    def search_change_text_string(self, symbol: str) -> list[SearchResult]:
+        return self.search(SearchType.CHANGE_TEXT_STRING, symbol)
+
+    def search_egrep(self, symbol: str) -> list[SearchResult]:
+        return self.search(SearchType.EGREP, symbol)
+
+    def search_file(self, symbol: str) -> list[SearchResult]:
+        return self.search(SearchType.FILE, symbol)
+
+    def search_files_including(self, symbol: str) -> list[SearchResult]:
+        return self.search(SearchType.FILES_INCLUDING, symbol)
+
+    def search_assign_to_symbol(self, symbol: str) -> list[SearchResult]:
+        return self.search(SearchType.ASSIGN_TO_SYMBOL, symbol)
