@@ -22,3 +22,4 @@ class SearchResult(BaseModel):
     parent: str
     line: int
     content: str
+    search_type: SearchType

@@ -1,6 +1,4 @@
 import os
-import shutil
-import tempfile
 
 from cscopy.cli import CscopeCLI
 from cscopy.model import SearchResult, SearchType
@@ -11,15 +9,14 @@ class CscopeWorkspace(object):
     cli: CscopeCLI
     files: list[str]
     kernel_mode: bool
-    tempdir: tempfile.TemporaryDirectory
-    tempdir_path: str
+    temp_file: str = "/dev/shm/cscope.out"
 
     def __init__(
         self,
         files: list[str],
         cli: CscopeCLI = CscopeCLI("/usr/bin/cscope"),
-        use_tempfile: bool = True,
         kernel_mode: bool = True,
+        temp_file: str = "/dev/shm/cscope.out",
     ) -> None:
         self.cli = cli
         self.kernel_mode = kernel_mode
@@ -30,47 +27,27 @@ class CscopeWorkspace(object):
             if not os.path.exists(file):
                 raise FileNotFoundError(f"File not found: {file}")
 
-        # copy files to a temporary directory
-        if use_tempfile:
-            self.tempdir = tempfile.TemporaryDirectory()
-            self.tempdir_path = self.tempdir.name
-
-            file_index = 0
-            target_files = []
-            for file in files:
-                target_file = os.path.join(self.tempdir_path, f"{file_index}")
-                shutil.copy(
-                    file, target_file
-                )  # use shutil.copy to preserve file attributes
-
-                target_files.append(target_file)
-
-        else:
-            target_files = files
-            self.tempdir_path = os.getcwd()
-
         # Generate cscope.out file
-        cmds = [cli.cscope_path, "-b", *target_files]
+        cmds = [cli.cscope_path, "-b", *files, "-f", self.temp_file]
         if kernel_mode:
             cmds.append("-k")
 
-        output = run(
+        _output = run(
             cmds=cmds,
             capture_output=True,
             check=True,
-            cwd=self.tempdir_path,
         )
 
         # Check if cscope.out file is generated
-        if not os.path.exists(os.path.join(self.tempdir_path, "cscope.out")):
+        if not os.path.exists(self.temp_file):
             raise FileNotFoundError("cscope.out file not found")
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if hasattr(self, "tempdir"):
-            self.tempdir.cleanup()
+        if self.temp_file != "/dev/shm/cscope.out" and os.path.exists(self.temp_file):
+            os.remove(self.temp_file)
 
     def search(self, mode: SearchType, symbol: str) -> list[SearchResult]:
         """
@@ -94,10 +71,11 @@ class CscopeWorkspace(object):
                 "-d",
                 f"-L{mode.value}",
                 f"{symbol}",
+                "-f",
+                self.temp_file,
             ],
             capture_output=True,
             check=True,
-            cwd=self.tempdir_path,
         )
 
         output_lines = output.splitlines()
@@ -112,10 +90,11 @@ class CscopeWorkspace(object):
 
             search_result = SearchResult(
                 symbol=symbol,
-                file=self.files[int(os.path.basename(file))] if self.tempdir else file,
+                file=file,
                 parent=parent,
                 line=line_number,
                 content=content,
+                search_type=mode,
             )
             search_results.append(search_result)
 
