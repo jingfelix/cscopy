@@ -1,6 +1,6 @@
 [project]
 name = "cscopy"
-version = "0.0.1"
+version = "0.0.2"
 description = "Python binding for cscopy"
 authors = [
     {name = "jingfelix", email = "jingfelix@outlook.com"},
