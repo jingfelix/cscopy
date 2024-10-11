@@ -21,6 +21,7 @@ class CscopeWorkspace(object):
         self.cli = cli
         self.kernel_mode = kernel_mode
         self.files = files
+        self.temp_file = temp_file
 
         # Check whether files exist
         for file in files:
@@ -46,7 +47,8 @@ class CscopeWorkspace(object):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.temp_file != "/dev/shm/cscope.out" and os.path.exists(self.temp_file):
+        # if self.temp_file != "/dev/shm/cscope.out" and os.path.exists(self.temp_file):
+        if os.path.exists(self.temp_file):
             os.remove(self.temp_file)
 
     def search(self, mode: SearchType, symbol: str) -> list[SearchResult]:
